@@ -3,6 +3,7 @@ name: px4 ros integration ci
 on:
   push:
   pull_request:
+  workflow_call:
 
 jobs:
   px4-ros:
