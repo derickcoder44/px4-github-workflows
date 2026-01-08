@@ -15,7 +15,7 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
 
-      - name: cache pip packages
+      - name: pull cache pip packages
         uses: actions/cache@v4
         with:
           path: /root/.cache/pip
@@ -71,7 +71,7 @@ jobs:
             numpy \
             pandas
 
-      - name: cache gazebo garden
+      - name: pull cache gazebo garden
         uses: actions/cache@v4
         id: cache-gazebo
         with:
@@ -94,7 +94,7 @@ jobs:
           apt-get update
           apt-get install -y gz-garden
 
-      - name: cache micro xrce dds agent
+      - name: pull cache micro xrce dds agent
         uses: actions/cache@v4
         id: cache-microxrce
         with:
@@ -124,7 +124,7 @@ jobs:
         if: steps.cache-microxrce.outputs.cache-hit == 'true'
         run: ldconfig
 
-      - name: cache git repositories
+      - name: pull cache git repositories
         uses: actions/cache@v4
         with:
           path: |
@@ -135,7 +135,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-repos-px4-1.14-
 
-      - name: cache ccache
+      - name: pull cache ccache
         uses: actions/cache@v4
         with:
           path: /root/.ccache
@@ -143,7 +143,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-
 
-      - name: cache px4 build
+      - name: pull cache px4 build
         uses: actions/cache@v4
         with:
           path: /root/workspace/PX4-Autopilot/build
@@ -151,7 +151,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-px4-build-
 
-      - name: cache ros2 workspace
+      - name: pull cache ros2 workspace
         uses: actions/cache@v4
         with:
           path: |
