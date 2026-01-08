@@ -15,6 +15,14 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
 
+      - name: cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: /root/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('.github/workflows/px4_ros_ci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: install dependencies
         run: |
           set -e
@@ -45,10 +53,11 @@ jobs:
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-ugly \
             gstreamer1.0-libav \
-            rsync
+            rsync \
+            ccache
 
-          pip3 install --no-cache-dir --upgrade pip
-          pip3 install --no-cache-dir \
+          pip3 install --upgrade pip
+          pip3 install \
             kconfiglib \
             empy==3.3.4 \
             pyros-genmsg \
@@ -62,17 +71,40 @@ jobs:
             numpy \
             pandas
 
+      - name: cache gazebo garden
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: gz-garden
+          version: 1.0
+
       - name: install gazebo garden
         run: |
           set -e
-          wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] \
-            http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
-            | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-          apt-get update
-          apt-get install -y gz-garden
+          if ! command -v gz &> /dev/null; then
+            wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] \
+              http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
+              | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+            apt-get update
+            apt-get install -y gz-garden
+          else
+            echo "Gazebo Garden already installed (from cache)"
+          fi
+
+      - name: cache micro xrce dds agent
+        uses: actions/cache@v4
+        id: cache-microxrce
+        with:
+          path: |
+            /usr/local/bin/MicroXRCEAgent
+            /usr/local/lib/libmicroxrcedds_agent*
+            /usr/local/lib/libfastcdr*
+            /usr/local/include/uxr
+            /usr/local/include/fastcdr
+          key: ${{ runner.os }}-microxrce-v1
 
       - name: install micro xrce dds agent
+        if: steps.cache-microxrce.outputs.cache-hit != 'true'
         run: |
           set -e
           cd /tmp
@@ -84,6 +116,47 @@ jobs:
           make install
           ldconfig
           cd / && rm -rf /tmp/Micro-XRCE-DDS-Agent
+
+      - name: run ldconfig for cached microxrce
+        if: steps.cache-microxrce.outputs.cache-hit == 'true'
+        run: ldconfig
+
+      - name: cache git repositories
+        uses: actions/cache@v4
+        with:
+          path: |
+            /root/workspace/PX4-Autopilot
+            /root/workspace/ros2_ws/src/px4_msgs
+            /root/workspace/ros2_ws/src/px4_ros_com
+          key: ${{ runner.os }}-repos-px4-1.14-${{ github.run_number }}
+          restore-keys: |
+            ${{ runner.os }}-repos-px4-1.14-
+
+      - name: cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /root/.ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: cache px4 build
+        uses: actions/cache@v4
+        with:
+          path: /root/workspace/PX4-Autopilot/build
+          key: ${{ runner.os }}-px4-build-${{ hashFiles('/root/workspace/PX4-Autopilot/CMakeLists.txt', '/root/workspace/PX4-Autopilot/.git/modules/**/HEAD') }}
+          restore-keys: |
+            ${{ runner.os }}-px4-build-
+
+      - name: cache ros2 workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            /root/workspace/ros2_ws/build
+            /root/workspace/ros2_ws/install
+          key: ${{ runner.os }}-ros2-${{ hashFiles('/root/workspace/ros2_ws/src/**/package.xml', '/root/workspace/ros2_ws/src/**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-ros2-
 
       - name: prepare workspace
         run: |
@@ -116,11 +189,29 @@ jobs:
           #!/bin/bash
           set -e
 
+          # Configure ccache
+          export CCACHE_DIR=/root/.ccache
+          export CCACHE_MAXSIZE=400M
+          export CCACHE_COMPRESS=1
+          export CCACHE_COMPRESSLEVEL=6
+          export PATH="/usr/lib/ccache:$PATH"
+
           export GZ_SIM_RESOURCE_PATH=$HOME/workspace/PX4-Autopilot/Tools/simulation/gz/models
           cd $HOME/workspace/PX4-Autopilot
-          make distclean
+
+          # Only distclean if no cached build exists
+          if [ ! -f "build/px4_sitl_default/CMakeCache.txt" ]; then
+            echo "No cached build found, running distclean..."
+            make distclean
+          else
+            echo "Using cached build, skipping distclean"
+          fi
+
           # Build only, don't run the simulator
           make px4_sitl_default
+
+          # Show ccache stats
+          ccache -s
           EOF
           chmod +x $HOME/scripts/build_px4.sh
 
