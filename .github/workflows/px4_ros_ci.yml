@@ -116,6 +116,7 @@ jobs:
           #!/bin/bash
           set -e
 
+          export PX4_NO_HELP=1
           export PX4_SIM_SPEED_FACTOR=2
           export PX4_GZ_MODEL=x500
           export GZ_SIM_RESOURCE_PATH=$HOME/workspace/PX4-Autopilot/Tools/simulation/gz/models
@@ -177,6 +178,7 @@ jobs:
             sleep 1
           done
 
+          export PX4_NO_HELP=1
           export PX4_SIM_SPEED_FACTOR=2
           export PX4_GZ_MODEL=x500
           export PX4_UXRCE_DDS_NS=fmu
