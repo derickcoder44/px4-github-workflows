@@ -28,9 +28,9 @@ echo "      as GitHub Actions (osrf/ros:humble-desktop-full)"
 echo ""
 
 # Run the workflow with act
-# --container-architecture linux/amd64: Ensure consistent architecture
+# --container-architecture linux/arm64: Use ARM64 for Apple Silicon Macs
 # -j px4-ros: Run only the px4-ros job
 # --verbose: Show detailed output
 act -j px4-ros \
-    --container-architecture linux/amd64 \
+    --container-architecture linux/arm64 \
     --verbose
