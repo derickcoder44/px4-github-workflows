@@ -147,7 +147,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /root/workspace/PX4-Autopilot/build
-          key: ${{ runner.os }}-px4-build-${{ hashFiles('/root/workspace/PX4-Autopilot/CMakeLists.txt', '/root/workspace/PX4-Autopilot/.git/modules/**/HEAD') }}
+          key: ${{ runner.os }}-px4-build-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-px4-build-
 
@@ -157,7 +157,7 @@ jobs:
           path: |
             /root/workspace/ros2_ws/build
             /root/workspace/ros2_ws/install
-          key: ${{ runner.os }}-ros2-${{ hashFiles('/root/workspace/ros2_ws/src/**/package.xml', '/root/workspace/ros2_ws/src/**/CMakeLists.txt') }}
+          key: ${{ runner.os }}-ros2-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-ros2-
 
