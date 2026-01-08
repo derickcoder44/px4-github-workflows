@@ -72,24 +72,27 @@ jobs:
             pandas
 
       - name: cache gazebo garden
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: actions/cache@v4
+        id: cache-gazebo
         with:
-          packages: gz-garden
-          version: 1.0
+          path: |
+            /usr/bin/gz
+            /usr/lib/x86_64-linux-gnu/gz-*
+            /usr/lib/x86_64-linux-gnu/libgz-*
+            /usr/share/gz
+            /usr/include/gz
+          key: ${{ runner.os }}-gazebo-garden-v1
 
       - name: install gazebo garden
+        if: steps.cache-gazebo.outputs.cache-hit != 'true'
         run: |
           set -e
-          if ! command -v gz &> /dev/null; then
-            wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] \
-              http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
-              | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-            apt-get update
-            apt-get install -y gz-garden
-          else
-            echo "Gazebo Garden already installed (from cache)"
-          fi
+          wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] \
+            http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
+            | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+          apt-get update
+          apt-get install -y gz-garden
 
       - name: cache micro xrce dds agent
         uses: actions/cache@v4
