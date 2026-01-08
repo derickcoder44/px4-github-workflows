@@ -122,6 +122,7 @@ jobs:
           export GZ_SIM_SYSTEM_PLUGIN_PATH=$HOME/workspace/PX4-Autopilot/build/px4_sitl_default/build_gz-garden
           cd $HOME/workspace/PX4-Autopilot
           make distclean
+          make px4_sitl gz_x500
           EOF
           chmod +x $HOME/scripts/build_px4.sh
 
